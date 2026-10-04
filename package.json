@@ -1,0 +1,12 @@
+{
+  "name": "colorscope",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "ColorScope — Production-grade client-side image color & spectral analysis tool",
+  "scripts": {
+    "dev": "node dev-server.js",
+    "start": "node dev-server.js",
+    "preview": "node dev-server.js"
+  }
+}

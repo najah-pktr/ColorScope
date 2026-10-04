@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ColorScope — Client-Side Image Color & Spectral Analyzer</title>
+  <meta name="description" content="Production-grade client-side color analysis tool. Extract dominant colors, percentages, and palettes locally in your browser with zero AI or external APIs.">
+
+  <!-- Typography: Geist & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="icon" type="image/svg+xml" href="./src/assets/logo.svg">
+  <link rel="stylesheet" href="./src/css/design-system.css">
+  <link rel="stylesheet" href="./src/css/components.css">
+</head>
+<body>
+
+  <!-- Minimalist Premium Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <a href="#" class="brand-wrapper" aria-label="ColorScope Home">
+        <img src="./src/assets/logo.svg" alt="ColorScope Logo" class="brand-logo" width="28" height="28">
+        <span class="brand-text">ColorScope</span>
+      </a>
+      <span class="brand-tag">CLIENT ENGINE</span>
+    </div>
+
+    <!-- Cluster count selector in header -->
+    <div class="header-center">
+      <div class="cluster-selector-bar">
+        <span class="cluster-selector-label">Clusters</span>
+        <button type="button" class="cluster-pill" data-count="4">4</button>
+        <button type="button" class="cluster-pill active" data-count="6">6</button>
+        <button type="button" class="cluster-pill" data-count="8">8</button>
+        <button type="button" class="cluster-pill" data-count="10">10</button>
+        <button type="button" class="cluster-pill" data-count="12">12</button>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <button type="button" class="btn btn-secondary" id="header-upload-btn" title="Upload Image (U or Cmd+O)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <span>Upload</span>
+        <kbd class="btn-kbd">U</kbd>
+      </button>
+
+      <button type="button" class="btn btn-primary" id="open-export-btn" title="Export Palette (Cmd+E)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Export Palette</span>
+        <kbd class="btn-kbd">⌘E</kbd>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Application Workspace -->
+  <main class="app-main">
+
+    <!-- Workspace Intro & Quick Stats -->
+    <div class="workspace-intro">
+      <div class="workspace-title-row">
+        <div>
+          <h1 class="workspace-title">Spectral Palette Inspector</h1>
+          <p class="workspace-subtitle">
+            Client-side image color extraction engine. Calculates dominant clusters, perceptual percentages, and WCAG contrast compliant tokens in zero latency.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Two-Column Primary Grid -->
+    <div class="workspace-grid">
+
+      <!-- LEFT COLUMN: Canvas, Image Preview, Loupe, Dropzone & Metadata -->
+      <section class="canvas-column" aria-label="Image Ingestion and Viewport">
+
+        <!-- Viewport Container -->
+        <div class="canvas-viewport-card">
+          <div class="canvas-toolbar">
+            <div class="canvas-toolbar-left">
+              <span class="canvas-toolbar-title">Active Viewport</span>
+            </div>
+            <div class="canvas-toolbar-right">
+              <button type="button" class="loupe-toggle-btn active" id="loupe-toggle-btn" title="Toggle Interactive Pixel Loupe">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <span>Eyedropper Loupe</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Image Preview Area -->
+          <div class="image-preview-wrapper" id="image-preview-wrapper">
+            <img id="preview-image" class="preview-image" alt="Active analysis target" crossorigin="anonymous">
+
+            <!-- Processing Loading Overlay -->
+            <div class="processing-overlay" id="processing-overlay">
+              <div class="spinner-ring"></div>
+              <span class="font-mono text-xs" style="color: var(--text-secondary); font-size: 0.75rem;">Quantizing Color Clusters...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Image Metadata Display -->
+        <div class="metadata-grid">
+          <div class="metadata-cell">
+            <span class="meta-label">File Name</span>
+            <span class="meta-value" id="meta-filename">fuji_autumn_dusk.jpg</span>
+          </div>
+          <div class="metadata-cell">
+            <span class="meta-label">Resolution</span>
+            <span class="meta-value" id="meta-resolution">1,376 × 768 px</span>
+          </div>
+          <div class="metadata-cell">
+            <span class="meta-label">File Size</span>
+            <span class="meta-value" id="meta-filesize">342 KB</span>
+          </div>
+          <div class="metadata-cell">
+            <span class="meta-label">Format</span>
+            <span class="meta-value" id="meta-format">JPEG</span>
+          </div>
+        </div>
+
+        <!-- Drag & Drop Upload Zone -->
+        <div class="dropzone-box" id="dropzone">
+          <input type="file" id="file-input" class="hidden" accept="image/*" style="display: none;">
+          <div class="dropzone-icon-wrap">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <p class="dropzone-title">Drop an image here or click to browse</p>
+            <p class="dropzone-hint">PNG, JPG, WEBP, AVIF, SVG or paste clipboard snapshot (⌘V)</p>
+          </div>
+        </div>
+
+        <!-- Quick Sample Presets -->
+        <div class="presets-section">
+          <div class="presets-header">
+            <span>Curated Sample Presets</span>
+            <span style="color: var(--accent-cyan); font-size: 0.625rem;">Instant Offline</span>
+          </div>
+          <div class="presets-row">
+            <button type="button" class="preset-card active" data-preset="fuji_autumn">
+              <div class="preset-swatch-thumb" style="background: linear-gradient(135deg, #E05A2B 50%, #1B2B4A 50%);"></div>
+              <span class="preset-name">Fuji Autumn</span>
+            </button>
+            <button type="button" class="preset-card" data-preset="cyberpunk_neon">
+              <div class="preset-swatch-thumb" style="background: linear-gradient(135deg, #EC4899 50%, #06B6D4 50%);"></div>
+              <span class="preset-name">Cyberpunk Neon</span>
+            </button>
+            <button type="button" class="preset-card" data-preset="nordic_minimal">
+              <div class="preset-swatch-thumb" style="background: linear-gradient(135deg, #0D9488 50%, #D97706 50%);"></div>
+              <span class="preset-name">Nordic Fjord</span>
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- RIGHT COLUMN: Spectral Analysis & Output Instruments -->
+      <section class="analysis-column" aria-label="Spectral Palette Analysis">
+
+        <!-- Dominant Color Showcase Card -->
+        <div class="dominant-showcase-card" id="dominant-showcase-card">
+          <!-- Dynamic Ambient Backlight Glow -->
+          <div class="showcase-ambient-glow"></div>
+
+          <div class="showcase-header">
+            <span class="dominant-role-label" id="dominant-role">Primary Dominant</span>
+            <span class="showcase-badge" id="dominant-badge">34.8% Dominant</span>
+          </div>
+
+          <div class="showcase-body">
+            <!-- Hero Swatch -->
+            <div class="dominant-hero-swatch" id="hero-swatch" title="Click to copy HEX">
+              <span class="contrast-pill contrast-aaa" id="contrast-pill">WCAG AAA (8.4:1)</span>
+              <span style="font-family: var(--font-mono); font-size: 0.625rem; color: rgba(255,255,255,0.85); background: rgba(0,0,0,0.5); padding: 1px 4px; border-radius: 3px;">Click to copy</span>
+            </div>
+
+            <div class="showcase-details">
+              <div class="showcase-title-row">
+                <h2 class="dominant-color-name" id="dominant-name">Autumn Ember</h2>
+              </div>
+
+              <!-- Color Values Strip -->
+              <div class="values-readout-strip">
+                <div class="value-box" id="box-hex" title="Click to copy HEX">
+                  <div class="value-box-content">
+                    <span class="val-label">HEX</span>
+                    <span class="val-data" id="val-hex">#E05A2B</span>
+                  </div>
+                  <span class="val-copy-icon">⎘</span>
+                </div>
+
+                <div class="value-box" id="box-rgb" title="Click to copy RGB">
+                  <div class="value-box-content">
+                    <span class="val-label">RGB</span>
+                    <span class="val-data" id="val-rgb">rgb(224, 90, 43)</span>
+                  </div>
+                  <span class="val-copy-icon">⎘</span>
+                </div>
+
+                <div class="value-box" id="box-hsl" title="Click to copy HSL">
+                  <div class="value-box-content">
+                    <span class="val-label">HSL</span>
+                    <span class="val-data" id="val-hsl">hsl(16, 75%, 52%)</span>
+                  </div>
+                  <span class="val-copy-icon">⎘</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Color Distribution Visualization Bar -->
+        <div class="distribution-card">
+          <div class="distribution-header">
+            <span class="distribution-label">Color Distribution</span>
+            <span class="distribution-normalized-tag">100% Normalized</span>
+          </div>
+
+          <!-- Multi-segment Proportional Bar -->
+          <div class="distribution-bar" id="distribution-bar"></div>
+
+          <!-- Distribution Pill Legend -->
+          <div class="distribution-legend" id="distribution-legend"></div>
+        </div>
+
+        <!-- Extracted Palette Swatch Cards Grid -->
+        <div class="palette-cards-container">
+          <div class="palette-header">
+            <span class="palette-title">Extracted Palette <span id="swatch-count-label">(6)</span></span>
+            <span class="palette-hint">Click card to inspect</span>
+          </div>
+
+          <!-- Swatch Cards Container -->
+          <div class="swatches-grid" id="swatches-grid"></div>
+        </div>
+
+        <!-- Bottom Actions & Quick Exports -->
+        <div class="export-panel-bar">
+          <div class="export-bar-left">
+            <button type="button" class="btn btn-secondary" id="quick-copy-tokens-btn" title="Copy CSS Variables snippet">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Copy CSS</span>
+            </button>
+
+            <button type="button" class="btn btn-secondary" id="quick-export-json-btn" title="Download JSON palette data">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <span>Download JSON</span>
+            </button>
+          </div>
+
+          <div class="export-bar-right">
+            <button type="button" class="btn btn-primary" onclick="document.getElementById('open-export-btn').click()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Export Suite...</span>
+            </button>
+          </div>
+        </div>
+
+      </section>
+    </div>
+  </main>
+
+  <!-- Export Dialog Modal -->
+  <div class="modal-backdrop" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-title">Export Palette</h3>
+        <button type="button" class="modal-close-btn" id="modal-close-btn" aria-label="Close modal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-tabs">
+        <button type="button" class="modal-tab-btn active" data-tab="css">CSS Variables</button>
+        <button type="button" class="modal-tab-btn" data-tab="json">JSON</button>
+        <button type="button" class="modal-tab-btn" data-tab="tailwind">Tailwind</button>
+        <button type="button" class="modal-tab-btn" data-tab="svg">Vector SVG Card</button>
+        <button type="button" class="modal-tab-btn" data-tab="png">High-Res PNG Card</button>
+      </div>
+
+      <div class="modal-body">
+        <pre class="code-preview-block"><code id="export-code-preview"></code></pre>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="modal-copy-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span>Copy Snippet</span>
+        </button>
+
+        <button type="button" class="btn btn-primary" id="modal-download-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Download Asset</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Main Application Script -->
+  <script type="module" src="./src/js/app.js"></script>
+</body>
+</html>
